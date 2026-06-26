@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻页相册书</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(160deg, #8B7355 0%, #6B5B3E 40%, #5C4A2E 100%);
+            font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 桌面纹理叠加 */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 3px,
+                    rgba(0,0,0,0.02) 3px,
+                    rgba(0,0,0,0.02) 4px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 30px,
+                    rgba(255,255,255,0.01) 30px,
+                    rgba(255,255,255,0.01) 31px
+                );
+            pointer-events: none;
+        }
+
+        /* 返回主页链接 */
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            z-index: 100;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .back-link:hover { color: #fff; }
+
+        /* 场景容器 */
+        .scene {
+            perspective: 2000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 书籍容器 */
+        .book {
+            position: relative;
+            width: min(90vw, 820px);
+            aspect-ratio: 7 / 5;
+            transform-style: preserve-3d;
+        }
+
+        /* 书页背景层（左右底板） */
+        .book-bg {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(to right, #f5f0e8, #ede8dc);
+        }
+        .book-bg.left {
+            left: 0;
+            background: linear-gradient(to right, #e8e2d6, #f0ebe0);
+            border-radius: 8px 0 0 8px;
+            box-shadow: inset -4px 0 12px rgba(0,0,0,0.08);
+        }
+        .book-bg.right {
+            right: 0;
+            background: linear-gradient(to left, #ede8dc, #f5f0e8);
+            border-radius: 0 8px 8px 0;
+            box-shadow: inset 4px 0 12px rgba(0,0,0,0.08);
+        }
+
+        /* 书脊 */
+        .spine {
+            position: absolute;
+            left: 50%;
+            top: -2px;
+            bottom: -2px;
+            width: 6px;
+            transform: translateX(-50%);
+            background: linear-gradient(to right,
+                rgba(0,0,0,0.12),
+                rgba(0,0,0,0.04) 30%,
+                rgba(255,255,255,0.1) 50%,
+                rgba(0,0,0,0.04) 70%,
+                rgba(0,0,0,0.12)
+            );
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        /* 书的外阴影 */
+        .book-shadow {
+            position: absolute;
+            bottom: -20px;
+            left: 5%;
+            width: 90%;
+            height: 30px;
+            background: radial-gradient(ellipse, rgba(0,0,0,0.35), transparent 70%);
+            filter: blur(8px);
+            pointer-events: none;
+        }
+
+        /* 页面（叶片） */
+        .page {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: pointer;
+        }
+
+        .page .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #f7f2ea, #ede8dc);
+        }
+
+        /* 正面（右页） */
+        .page .front {
+            border-radius: 0 8px 8px 0;
+            box-shadow:
+                inset -3px 0 8px rgba(0,0,0,0.06),
+                inset 3px 0 4px rgba(0,0,0,0.02);
+        }
+
+        /* 背面（左页） */
+        .page .back {
+            transform: rotateY(180deg);
+            border-radius: 8px 0 0 8px;
+            box-shadow:
+                inset 3px 0 8px rgba(0,0,0,0.06),
+                inset -3px 0 4px rgba(0,0,0,0.02);
+        }
+
+        /* 翻转状态 */
+        .page.flipped {
+            transform: rotateY(-180deg);
+        }
+
+        /* ===== 页面内容样式 ===== */
+
+        /* 封面 */
+        .page-cover {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            position: relative;
+            background: linear-gradient(135deg, #fce7f3, #fbcfe8, #f9a8d4);
+        }
+        .page-cover .cover-deco {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .page-cover h1 {
+            font-size: clamp(18px, 3vw, 26px);
+            color: #be185d;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+        .page-cover p {
+            font-size: clamp(12px, 2vw, 15px);
+            color: #9d174d;
+            opacity: 0.8;
+        }
+        .page-cover .cover-line {
+            width: 60px;
+            height: 2px;
+            background: #ec4899;
+            margin: 12px 0;
+            border-radius: 1px;
+        }
+
+        /* 封底 */
+        .page-backcover {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            background: linear-gradient(135deg, #fce7f3, #fdf2f8);
+        }
+        .page-backcover .back-deco {
+            font-size: 36px;
+            margin-bottom: 16px;
+        }
+        .page-backcover h2 {
+            font-size: clamp(16px, 2.5vw, 20px);
+            color: #be185d;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .page-backcover p {
+            font-size: clamp(12px, 1.8vw, 14px);
+            color: #9d174d;
+            opacity: 0.7;
+            line-height: 1.8;
+        }
+
+        /* 内容页 */
+        .page-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .page-content .photo-area {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        .page-content .photo-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            -webkit-user-drag: none;
+            pointer-events: none;
+        }
+        .page-content .text-area {
+            padding: 12px 16px;
+            text-align: center;
+            border-top: 1px solid rgba(0,0,0,0.06);
+            background: rgba(245,240,232,0.5);
+        }
+        .page-content .text-area h3 {
+            font-size: clamp(13px, 2vw, 16px);
+            color: #be185d;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .page-content .text-area p {
+            font-size: clamp(11px, 1.6vw, 13px);
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        /* 页角翻页提示区 */
+        .page .flip-zone {
+            position: absolute;
+            bottom: 0;
+            width: 50px;
+            height: 50px;
+            z-index: 5;
+        }
+        .page .front .flip-zone { right: 0; }
+        .page .back .flip-zone { left: 0; }
+
+        /* 翻页角动画 */
+        .page .flip-corner {
+            position: absolute;
+            bottom: 0;
+            width: 30px;
+            height: 30px;
+            z-index: 4;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .page:hover .flip-corner { opacity: 0.4; }
+        .page .front .flip-corner {
+            right: 0;
+            background: linear-gradient(315deg, transparent 50%, rgba(0,0,0,0.08) 50%);
+        }
+        .page .back .flip-corner {
+            left: 0;
+            background: linear-gradient(225deg, transparent 50%, rgba(0,0,0,0.08) 50%);
+        }
+
+        /* ===== 控制栏 ===== */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .controls button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .controls button:hover:not(:disabled) {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+            color: #fff;
+        }
+        .controls button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .page-indicator {
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* 提示文字 */
+        .hint {
+            position: fixed;
+            bottom: 16px;
+            color: rgba(255,255,255,0.4);
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        /* ===== 响应式：三段式适配 ===== */
+
+        /* --- 平板端 (768px–1023px) --- */
+        @media (max-width: 1023px) and (min-width: 768px) {
+            .book {
+                width: 92vw;
+                max-width: 720px;
+            }
+            .controls button {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+            .page-cover .cover-deco {
+                font-size: 40px;
+                margin-bottom: 12px;
+            }
+            .page-cover {
+                padding: 16px;
+            }
+            .page-content .text-area {
+                padding: 10px 12px;
+            }
+            .page-content .text-area h3 {
+                font-size: clamp(12px, 1.8vw, 14px);
+            }
+            .page-content .text-area p {
+                font-size: clamp(10px, 1.4vw, 12px);
+            }
+            .page-backcover {
+                padding: 18px;
+            }
+            .back-link {
+                top: 14px;
+                left: 14px;
+                font-size: 13px;
+            }
+            .hint {
+                display: none;
+            }
+
+            /* 音乐播放器平板适配 */
+            .music-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+                top: 14px;
+                right: 14px;
+            }
+            .music-panel {
+                top: 58px;
+                right: 14px;
+                width: 260px;
+                max-height: 350px;
+            }
+            .music-controls button {
+                width: 32px;
+                height: 32px;
+                font-size: 13px;
+            }
+            .music-controls .play-btn {
+                width: 38px;
+                height: 38px;
+            }
+        }
+
+        /* --- 手机端 (<768px) --- */
+        @media (max-width: 767px) {
+            body {
+                justify-content: center;
+            }
+
+            .back-link {
+                top: 8px;
+                left: 8px;
+                font-size: 12px;
+            }
+
+            .scene {
+                perspective: 1200px;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            /* 单页模式：竖版比例 */
+            .book {
+                width: 88vw;
+                max-width: 380px;
+                aspect-ratio: 3 / 4;
+            }
+
+            /* 单页占满整本书宽度 */
+            .page {
+                width: 100%;
+                right: auto;
+                left: 0;
+            }
+
+            /* 圆角调整 */
+            .page .front {
+                border-radius: 8px;
+            }
+            .page .back {
+                border-radius: 8px;
+            }
+
+            /* 隐藏对开页元素 */
+            .spine {
+                display: none;
+            }
+            .book-bg.left {
+                width: 100%;
+                border-radius: 8px;
+                background: linear-gradient(to bottom, #f0ebe0, #ede8dc);
+                box-shadow: inset 0 0 12px rgba(0,0,0,0.06);
+            }
+            .book-bg.right {
+                display: none;
+            }
+            .book-shadow {
+                left: 10%;
+                width: 80%;
+                bottom: -12px;
+                height: 20px;
+            }
+
+            /* 封面缩小 */
+            .page-cover {
+                padding: 16px 12px;
+            }
+            .page-cover .cover-deco {
+                font-size: 36px;
+                margin-bottom: 10px;
+            }
+            .page-cover h1 {
+                font-size: clamp(15px, 4.5vw, 20px);
+                letter-spacing: 1px;
+            }
+            .page-cover p {
+                font-size: clamp(11px, 3vw, 13px);
+            }
+            .page-cover .cover-line {
+                width: 40px;
+                margin: 8px 0;
+            }
+
+            /* 封底缩小 */
+            .page-backcover {
+                padding: 16px 12px;
+            }
+            .page-backcover .back-deco {
+                font-size: 28px;
+                margin-bottom: 10px;
+            }
+            .page-backcover h2 {
+                font-size: clamp(14px, 4vw, 18px);
+            }
+            .page-backcover p {
+                font-size: clamp(11px, 3vw, 13px);
+                line-height: 1.7;
+            }
+
+            /* 内容页文字缩小 */
+            .page-content .text-area {
+                padding: 8px 10px;
+            }
+            .page-content .text-area h3 {
+                font-size: clamp(12px, 3.5vw, 14px);
+                margin-bottom: 2px;
+            }
+            .page-content .text-area p {
+                font-size: clamp(10px, 2.8vw, 12px);
+                line-height: 1.4;
+            }
+
+            /* 翻页区域扩大（触摸友好） */
+            .page .flip-zone {
+                width: 60px;
+                height: 60px;
+            }
+            .page .flip-corner {
+                width: 24px;
+                height: 24px;
+            }
+
+            /* 控制栏底部固定 */
+            .controls {
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                margin-top: 0;
+                background: rgba(0,0,0,0.25);
+                backdrop-filter: blur(8px);
+                padding: 8px 20px;
+                border-radius: 24px;
+                gap: 14px;
+            }
+            .controls button {
+                width: 34px;
+                height: 34px;
+                font-size: 15px;
+            }
+            .page-indicator {
+                font-size: 13px;
+            }
+
+            /* 提示隐藏 */
+            .hint {
+                display: none;
+            }
+
+            /* 音乐播放器手机适配 */
+            .music-toggle {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+                top: 8px;
+                right: 8px;
+            }
+            .music-panel {
+                position: fixed;
+                bottom: 70px;
+                left: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                max-height: 55vh;
+                border-radius: 16px 16px 0 0;
+                transform: translateY(100%);
+            }
+            .music-panel.open {
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== 音乐播放器 ===== */
+        .music-player {
+            position: fixed;
+            z-index: 200;
+        }
+
+        /* 音符按钮 */
+        .music-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 201;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            line-height: 1;
+        }
+        .music-toggle:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
+        .music-toggle.playing {
+            animation: musicPulse 1.5s ease-in-out infinite;
+            border-color: #f9a8d4;
+            color: #f9a8d4;
+        }
+
+        @keyframes musicPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* 面板 */
+        .music-panel {
+            position: fixed;
+            top: 68px;
+            right: 20px;
+            width: 280px;
+            max-height: 400px;
+            background: rgba(30, 20, 10, 0.75);
+            backdrop-filter: blur(16px);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 16px;
+            transform: translateY(-10px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+            color: rgba(255,255,255,0.9);
+        }
+        .music-panel.open {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 歌曲信息 */
+        .music-info {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .music-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .music-artist {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* 进度条 */
+        .music-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+            cursor: pointer;
+            margin-bottom: 6px;
+            position: relative;
+        }
+        .music-progress-bar {
+            height: 100%;
+            background: #ec4899;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* 时间显示 */
+        .music-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 12px;
+        }
+
+        /* 播放控制按钮 */
+        .music-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .music-controls button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .music-controls button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .music-controls .play-btn {
+            width: 42px;
+            height: 42px;
+            font-size: 16px;
+            background: #ec4899;
+            color: #fff;
+        }
+        .music-controls .play-btn:hover {
+            background: #db2777;
+        }
+
+        /* 歌曲列表 */
+        .music-list {
+            list-style: none;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 8px;
+        }
+        .music-list li {
+            padding: 8px 10px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .music-list li:hover {
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.9);
+        }
+        .music-list li.active {
+            color: #f9a8d4;
+            background: rgba(236,72,153,0.1);
+        }
+        .music-list li .song-artist {
+            font-size: 11px;
+            color: rgba(255,255,255,0.35);
+        }
+        .music-list li.active .song-artist {
+            color: rgba(249,168,212,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <a class="back-link" href="index.html">&#8592; 返回主页</a>
+
+    <div class="scene">
+        <div class="book" id="book">
+            <div class="book-bg left"></div>
+            <div class="book-bg right"></div>
+            <div class="spine"></div>
+            <div class="book-shadow"></div>
+            <!-- 页面由 JS 动态生成 -->
+        </div>
+
+        <div class="controls">
+            <button id="btn-prev" disabled>&#8249;</button>
+            <span class="page-indicator" id="page-indicator">1 / 6</span>
+            <button id="btn-next">&#8250;</button>
+        </div>
+    </div>
+
+    <div class="hint">点击页角或拖拽翻页 · 键盘 ← →</div>
+
+    <!-- 音乐播放器 -->
+    <div class="music-player">
+        <button class="music-toggle" id="musicToggle">♪</button>
+        <div class="music-panel" id="musicPanel">
+            <div class="music-info">
+                <span class="music-title" id="musicTitle">未选择歌曲</span>
+                <span class="music-artist" id="musicArtist"></span>
+            </div>
+            <div class="music-progress" id="musicProgress">
+                <div class="music-progress-bar" id="musicProgressBar"></div>
+            </div>
+            <div class="music-time">
+                <span id="musicCurrentTime">0:00</span>
+                <span id="musicDuration">0:00</span>
+            </div>
+            <div class="music-controls">
+                <button id="musicPrev" title="上一首">⏮</button>
+                <button class="play-btn" id="musicPlay" title="播放">▶</button>
+                <button id="musicNext" title="下一首">⏭</button>
+            </div>
+            <ul class="music-list" id="musicList"></ul>
+        </div>
+        <audio id="audioPlayer" preload="auto"></audio>
+    </div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════╗
+// ║                                                              ║
+// ║         ★★★  用户数据修改区域 - 在此替换内容  ★★★             ║
+// ║                                                              ║
+// ║  修改下方 albumData 中的内容即可自定义相册。                   ║
+// ║                                                              ║
+// ║  图片: 将 image 字段替换为你的真实图片路径或 URL              ║
+// ║        例如: image: "photos/my-photo.jpg"                    ║
+// ║        或:   image: "https://example.com/photo.jpg"          ║
+// ║                                                              ║
+// ║  文字: 修改 title 和 description 字段                        ║
+// ║                                                              ║
+// ║  增减页面: 在 pages 数组中添加或删除条目                      ║
+// ║            注意: 总页数必须为偶数（封面+封底+内容页）          ║
+// ║            如果是奇数，最后一个内容页背面会留白                ║
+// ║                                                              ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+const albumData = {
+    title: "我们的青春纪念册",
+    subtitle: "2024届 毕业留念",
+    backCoverText: "感谢相遇\n愿我们前程似锦\n未来可期",
+
+    // --- 歌曲列表 ---
+    // 将 src 替换为你的音乐文件路径或 URL
+    // 例如: src: "music/song.mp3" 或 src: "https://example.com/song.mp3"
+    musicList: [
+        { title: "晴天", artist: "周杰伦", src: "" },
+        { title: "那些年", artist: "胡夏", src: "" },
+        { title: "朋友", artist: "周华健", src: "" },
+        { title: "送别", artist: "朴树", src: "" },
+    ],
+    pages: [
+        {
+            // 第 1 页 - 封面 (固定为封面，请勿删除此页)
+            isCover: true,
+            image: "",
+            title: "",
+            description: ""
+        },
+        {
+            // 第 2 页 - 毕业旅行
+            image: "https://picsum.photos/seed/graduation-trip/600/400",
+            title: "毕业旅行",
+            description: "那年夏天，我们背着行囊，踏上了一段难忘的旅程。山川湖海，见证了我们最美好的时光。"
+        },
+        {
+            // 第 3 页 - 宿舍合影
+            image: "https://picsum.photos/seed/dormitory-life/600/400",
+            title: "宿舍里的欢乐时光",
+            description: "四年的室友，从陌生到无话不谈。深夜的卧谈会、考试前的疯狂复习，都是最珍贵的回忆。"
+        },
+        {
+            // 第 4 页 - 课堂记忆
+            image: "https://picsum.photos/seed/classroom-days/600/400",
+            title: "课堂上的点点滴滴",
+            description: "认真听讲的、偷偷打瞌睡的、偷偷传纸条的……那些再也回不去的课堂时光。"
+        },
+        {
+            // 第 5 页 - 毕业典礼
+            image: "https://picsum.photos/seed/graduation-ceremony/600/400",
+            title: "毕业典礼",
+            description: "穿上学士服的那一刻，才真正意识到——我们要毕业了。 toss the hat，放飞青春与梦想！"
+        },
+        {
+            // 第 6 页 - 封底 (固定为封底，请勿删除此页)
+            isBackCover: true,
+            image: "",
+            title: "",
+            description: ""
+        }
+    ]
+};
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║           用户数据修改区域结束 - 以下请勿修改                  ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+
+// ===== 初始化 =====
+const bookEl = document.getElementById('book');
+const btnPrev = document.getElementById('btn-prev');
+const btnNext = document.getElementById('btn-next');
+const pageIndicator = document.getElementById('page-indicator');
+
+const pages = albumData.pages;
+const totalPages = pages.length;
+const totalLeaves = Math.ceil(totalPages / 2);
+let currentLeaf = 0; // 当前已翻转的叶片数 (0 = 封面在右侧)
+let isDragging = false;
+let dragPage = null;
+let dragStartX = 0;
+let dragAngle = 0;
+
+// ===== 渲染书籍 =====
+function renderBook() {
+    for (let i = 0; i < totalLeaves; i++) {
+        const frontIdx = i * 2;
+        const backIdx = i * 2 + 1;
+
+        const pageEl = document.createElement('div');
+        pageEl.className = 'page';
+        pageEl.style.zIndex = totalLeaves - i; // 未翻转：第一张在最上面
+        pageEl.dataset.leaf = i;
+
+        // 正面
+        const front = document.createElement('div');
+        front.className = 'face front';
+        renderPageContent(front, pages[frontIdx], true);
+        pageEl.appendChild(front);
+
+        // 背面
+        const back = document.createElement('div');
+        back.className = 'face back';
+        if (backIdx < totalPages) {
+            renderPageContent(back, pages[backIdx], false);
+        }
+        pageEl.appendChild(back);
+
+        bookEl.appendChild(pageEl);
+    }
+}
+
+// 渲染单页内容
+function renderPageContent(faceEl, pageData, isRightSide) {
+    if (!pageData) return;
+
+    // 封面
+    if (pageData.isCover) {
+        faceEl.innerHTML = `
+            <div class="page-cover">
+                <div class="cover-deco">&#128214;</div>
+                <h1>${albumData.title}</h1>
+                <div class="cover-line"></div>
+                <p>${albumData.subtitle}</p>
+            </div>`;
+        return;
+    }
+
+    // 封底
+    if (pageData.isBackCover) {
+        faceEl.innerHTML = `
+            <div class="page-backcover">
+                <div class="back-deco">&#10084;</div>
+                <h2>感谢有你</h2>
+                <p>${albumData.backCoverText.replace(/\n/g, '<br>')}</p>
+            </div>`;
+        return;
+    }
+
+    // 内容页
+    faceEl.innerHTML = `
+        <div class="page-content">
+            <div class="photo-area">
+                <img src="${pageData.image}" alt="${pageData.title}" loading="lazy">
+            </div>
+            <div class="text-area">
+                <h3>${pageData.title}</h3>
+                <p>${pageData.description}</p>
+            </div>
+        </div>`;
+
+    // 翻页角提示
+    const corner = document.createElement('div');
+    corner.className = 'flip-corner';
+    faceEl.appendChild(corner);
+
+    // 翻页点击区域
+    const zone = document.createElement('div');
+    zone.className = 'flip-zone';
+    faceEl.appendChild(zone);
+}
+
+// ===== 翻页逻辑 =====
+function updateZIndices() {
+    const leafEls = bookEl.querySelectorAll('.page');
+    leafEls.forEach((el, i) => {
+        if (i < currentLeaf) {
+            // 已翻转的页面：越后翻转的越在上面
+            el.style.zIndex = i + 1;
+        } else {
+            // 未翻转的页面：越前面的越上面
+            el.style.zIndex = totalLeaves - i;
+        }
+    });
+}
+
+function updateUI() {
+    btnPrev.disabled = currentLeaf <= 0;
+    btnNext.disabled = currentLeaf >= totalLeaves;
+    // 页码显示：当前可见的展开页码
+    const visiblePage = currentLeaf * 2 + 1;
+    pageIndicator.textContent = `${visiblePage} / ${totalPages}`;
+}
+
+function flipNext() {
+    if (currentLeaf >= totalLeaves) return;
+    const leafEls = bookEl.querySelectorAll('.page');
+    const el = leafEls[currentLeaf];
+    el.style.zIndex = totalLeaves + 1;
+    el.classList.add('flipped');
+    currentLeaf++;
+    setTimeout(() => updateZIndices(), 450);
+    updateUI();
+}
+
+function flipPrev() {
+    if (currentLeaf <= 0) return;
+    currentLeaf--;
+    const leafEls = bookEl.querySelectorAll('.page');
+    const el = leafEls[currentLeaf];
+    el.style.zIndex = totalLeaves + 1;
+    el.classList.remove('flipped');
+    setTimeout(() => updateZIndices(), 450);
+    updateUI();
+}
+
+// ===== 事件绑定 =====
+
+// 按钮翻页
+btnPrev.addEventListener('click', flipPrev);
+btnNext.addEventListener('click', flipNext);
+
+// 键盘翻页
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') flipNext();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') flipPrev();
+});
+
+// 点击页面翻页
+bookEl.addEventListener('click', (e) => {
+    if (isDragging) return;
+    const rect = bookEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const midX = rect.width / 2;
+
+    if (x > midX) {
+        flipNext();
+    } else {
+        flipPrev();
+    }
+});
+
+// ===== 拖拽翻页 =====
+function getX(e) {
+    return e.touches ? e.touches[0].clientX : e.clientX;
+}
+
+bookEl.addEventListener('mousedown', startDrag);
+bookEl.addEventListener('touchstart', startDrag, { passive: false });
+
+function startDrag(e) {
+    if (e.touches && e.touches.length > 1) return;
+
+    const rect = bookEl.getBoundingClientRect();
+    const x = getX(e) - rect.left;
+    const midX = rect.width / 2;
+
+    // 判断拖拽方向
+    let targetLeaf;
+    if (x > midX) {
+        // 右侧 → 向左翻
+        if (currentLeaf >= totalLeaves) return;
+        targetLeaf = currentLeaf;
+    } else {
+        // 左侧 → 向右翻回
+        if (currentLeaf <= 0) return;
+        targetLeaf = currentLeaf - 1;
+    }
+
+    const leafEls = bookEl.querySelectorAll('.page');
+    dragPage = leafEls[targetLeaf];
+    dragPage.style.zIndex = totalLeaves + 2;
+    dragPage.style.transition = 'none';
+    isDragging = false;
+    dragStartX = getX(e);
+
+    // 当前叶片的初始角度
+    dragAngle = (targetLeaf < currentLeaf) ? -180 : 0;
+
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('touchmove', onDrag, { passive: false });
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+}
+
+function onDrag(e) {
+    if (!dragPage) return;
+    e.preventDefault();
+
+    const dx = getX(e) - dragStartX;
+    if (Math.abs(dx) > 5) isDragging = true;
+
+    const rect = bookEl.getBoundingClientRect();
+    const pageWidth = window.innerWidth < 768 ? rect.width : rect.width / 2;
+
+    // 将水平拖拽距离映射为旋转角度
+    let angle;
+    if (dragAngle === 0) {
+        // 从右侧翻到左侧：0 → -180
+        angle = Math.max(-180, Math.min(0, (dx / pageWidth) * -180));
+    } else {
+        // 从左侧翻回右侧：-180 → 0
+        angle = Math.max(-180, Math.min(0, -180 + (dx / pageWidth) * 180));
+    }
+
+    dragPage.style.transform = `rotateY(${angle}deg)`;
+    dragPage._currentAngle = angle;
+}
+
+function endDrag(e) {
+    if (!dragPage) return;
+
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('touchmove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchend', endDrag);
+
+    dragPage.style.transition = '';
+
+    const angle = dragPage._currentAngle || dragAngle;
+
+    if (dragAngle === 0) {
+        // 翻到左侧
+        if (angle < -90) {
+            dragPage.classList.add('flipped');
+            currentLeaf++;
+        } else {
+            dragPage.style.transform = '';
+        }
+    } else {
+        // 翻回右侧
+        if (angle > -90) {
+            dragPage.classList.remove('flipped');
+            currentLeaf--;
+        } else {
+            dragPage.style.transform = 'rotateY(-180deg)';
+        }
+    }
+
+    setTimeout(() => updateZIndices(), 450);
+    updateUI();
+
+    dragPage = null;
+
+    // 阻止 click 事件
+    if (isDragging) {
+        setTimeout(() => { isDragging = false; }, 50);
+    }
+}
+
+// ===== 触摸滑动翻页 =====
+let touchStartX = 0;
+let touchStartY = 0;
+
+bookEl.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+bookEl.addEventListener('touchend', (e) => {
+    if (isDragging) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+
+    if (Math.abs(dx) < 30 || Math.abs(dy) > Math.abs(dx)) return;
+
+    if (dx < 0) flipNext();
+    else flipPrev();
+});
+
+// ===== 启动 =====
+renderBook();
+updateUI();
+
+// ===== 音乐播放器 =====
+(function() {
+    const toggleBtn = document.getElementById('musicToggle');
+    const panel = document.getElementById('musicPanel');
+    const audio = document.getElementById('audioPlayer');
+    const playBtn = document.getElementById('musicPlay');
+    const prevBtn = document.getElementById('musicPrev');
+    const nextBtn = document.getElementById('musicNext');
+    const titleEl = document.getElementById('musicTitle');
+    const artistEl = document.getElementById('musicArtist');
+    const progressEl = document.getElementById('musicProgress');
+    const progressBar = document.getElementById('musicProgressBar');
+    const currentTimeEl = document.getElementById('musicCurrentTime');
+    const durationEl = document.getElementById('musicDuration');
+    const listEl = document.getElementById('musicList');
+
+    const songs = albumData.musicList || [];
+    let currentIndex = -1;
+    let isPlaying = false;
+
+    // 格式化时间
+    function formatTime(sec) {
+        if (!sec || isNaN(sec)) return '0:00';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    // 渲染歌曲列表
+    function renderList() {
+        listEl.innerHTML = '';
+        songs.forEach((song, i) => {
+            const li = document.createElement('li');
+            li.className = i === currentIndex ? 'active' : '';
+            li.innerHTML = `<span>${song.title}</span><span class="song-artist">${song.artist}</span>`;
+            li.addEventListener('click', () => playSong(i));
+            listEl.appendChild(li);
+        });
+    }
+
+    // 播放指定歌曲
+    function playSong(index) {
+        if (songs.length === 0) return;
+        currentIndex = ((index % songs.length) + songs.length) % songs.length;
+        const song = songs[currentIndex];
+        if (!song.src) {
+            titleEl.textContent = song.title + '（未设置音乐文件）';
+            artistEl.textContent = song.artist;
+            renderList();
+            return;
+        }
+        audio.src = song.src;
+        audio.play().then(() => {
+            isPlaying = true;
+            playBtn.textContent = '⏸';
+            toggleBtn.classList.add('playing');
+        }).catch(() => {});
+        titleEl.textContent = song.title;
+        artistEl.textContent = song.artist;
+        renderList();
+    }
+
+    // 切换播放/暂停
+    function togglePlay() {
+        if (currentIndex < 0) {
+            if (songs.length > 0) playSong(0);
+            return;
+        }
+        if (isPlaying) {
+            audio.pause();
+            isPlaying = false;
+            playBtn.textContent = '▶';
+            toggleBtn.classList.remove('playing');
+        } else {
+            audio.play().then(() => {
+                isPlaying = true;
+                playBtn.textContent = '⏸';
+                toggleBtn.classList.add('playing');
+            }).catch(() => {});
+        }
+    }
+
+    // 面板开关
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('open');
+    });
+
+    // 点击面板外关闭
+    document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && e.target !== toggleBtn) {
+            panel.classList.remove('open');
+        }
+    });
+    panel.addEventListener('click', (e) => e.stopPropagation());
+
+    // 控制按钮
+    playBtn.addEventListener('click', togglePlay);
+    prevBtn.addEventListener('click', () => playSong(currentIndex - 1));
+    nextBtn.addEventListener('click', () => playSong(currentIndex + 1));
+
+    // 进度条更新
+    audio.addEventListener('timeupdate', () => {
+        if (audio.duration) {
+            const pct = (audio.currentTime / audio.duration) * 100;
+            progressBar.style.width = pct + '%';
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+        }
+    });
+
+    audio.addEventListener('loadedmetadata', () => {
+        durationEl.textContent = formatTime(audio.duration);
+    });
+
+    // 点击进度条跳转
+    progressEl.addEventListener('click', (e) => {
+        if (!audio.duration) return;
+        const rect = progressEl.getBoundingClientRect();
+        const pct = (e.clientX - rect.left) / rect.width;
+        audio.currentTime = pct * audio.duration;
+    });
+
+    // 播放结束自动下一首
+    audio.addEventListener('ended', () => {
+        playSong(currentIndex + 1);
+    });
+
+    // 初始化列表
+    renderList();
+})();
+</script>
+
+</body>
+</html>
