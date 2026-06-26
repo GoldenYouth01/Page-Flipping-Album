@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目主页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 装饰性背景圆 */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        body::before {
+            width: 400px;
+            height: 400px;
+            background: #f9a8d4;
+            top: -100px;
+            right: -80px;
+        }
+        body::after {
+            width: 300px;
+            height: 300px;
+            background: #f9a8d4;
+            bottom: -60px;
+            left: -60px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #be185d;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #9d174d;
+            opacity: 0.8;
+        }
+
+        /* 卡片容器 */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        /* 单个卡片 */
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 4px 24px rgba(236, 72, 153, 0.1);
+            border: 2px solid transparent;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            animation: fadeInUp 0.6s ease-out both;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .card:nth-child(1) { animation-delay: 0.15s; }
+        .card:nth-child(2) { animation-delay: 0.3s; }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 36px rgba(236, 72, 153, 0.2);
+            border-color: #f9a8d4;
+        }
+
+        /* 卡片图标区 */
+        .card-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 36px;
+        }
+
+        .card:nth-child(1) .card-icon {
+            background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+        }
+        .card:nth-child(2) .card-icon {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e1e1e;
+            margin-bottom: 8px;
+        }
+
+        .card .desc {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            flex: 1;
+        }
+
+        .card .btn {
+            display: inline-block;
+            padding: 10px 28px;
+            background: #ec4899;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .card .btn:hover {
+            background: #db2777;
+        }
+
+        /* 返回主站 */
+        .home-link {
+            display: block;
+            text-align: center;
+            margin-top: 32px;
+            color: #9d174d;
+            opacity: 0.5;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .home-link:hover {
+            opacity: 0.9;
+        }
+
+        /* 动画 */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .cards {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .header h1 { font-size: 26px; }
+            .header { margin-bottom: 32px; }
+            .card { padding: 24px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>项目导航</h1>
+            <p>选择一个项目开始探索</p>
+        </div>
+
+        <div class="cards">
+            <a class="card" href="ambience_synesthesia.html">
+                <div class="card-icon">🗺️</div>
+                <h2>音律联觉共享地图</h2>
+                <p class="desc">在地图上标记与分享属于你的美好回忆，与团队成员协作共建。</p>
+                <span class="btn">进入项目</span>
+            </a>
+
+            <a class="card" href="album.html">
+                <div class="card-icon">📖</div>
+                <h2>翻页相册书</h2>
+                <p class="desc">一本可翻页的电子相册，3D 翻书效果，记录青春的美好瞬间。</p>
+                <span class="btn">进入项目</span>
+            </a>
+        </div>
+
+        <a class="home-link" href="https://www.sevencentury.cn" target="_blank">&#8592; 返回主站</a>
+    </div>
+</body>
+</html>
