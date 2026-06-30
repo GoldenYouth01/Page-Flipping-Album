@@ -29,8 +29,8 @@
   <header class="site-header" role="banner">
     <div class="container">
       <a class="brand" href="index.html" aria-label="Some-Tools 首页">
-        <span class="brand__mark">SOME-TOOLS</span>
-        <span class="brand__sub" aria-hidden="true">// TOOLS COLLECTION</span>
+        <span class="brand__mark">陈星</span>
+        <span class="brand__sub" aria-hidden="true">// CHEN XING</span>
       </a>
 
       <button class="nav-toggle" type="button"
@@ -45,6 +45,7 @@
       <nav class="primary-nav" id="primary-nav" aria-label="主导航">
         <a href="index.html">首页 / INDEX</a>
         <a href="#works">作品 / WORKS</a>
+        <a href="#photos">照片 / PHOTOS</a>
         <a href="#about">关于 / ABOUT</a>
         <a href="#contact">联系 / CONTACT</a>
         <a href="https://github.com/GoldenYouth01" target="_blank" rel="noopener noreferrer">GitHub</a>
@@ -70,7 +71,7 @@
 
           <p class="hero__lede">
             独立开发者<br>
-            现就读于上海大学<br>
+            南京邮电大学本科生<br>
           </p>
 
           <div class="hero__ctas">
@@ -186,11 +187,33 @@
       </div>
     </section>
 
-    <!-- ======================== 03 · ABOUT ======================== -->
+    <!-- ======================== 03 · PHOTOS ======================== -->
+    <section class="page page--photos" id="photos" aria-labelledby="photos-title">
+      <div class="container">
+        <header class="section-head">
+          <p class="section-head__index">// 03 — PHOTOS</p>
+          <h2 class="section-head__title" id="photos-title">照片</h2>
+          <p class="section-head__sub">拍的一些照片。点击可放大查看。</p>
+        </header>
+
+        <div class="photo-stage">
+          <ul class="photo-grid" id="photo-grid" role="list" aria-live="polite">
+            <!-- 由 photo.js 渲染 -->
+          </ul>
+          <div class="photo-more" id="photo-more" hidden>
+            <button class="btn btn--ghost photo-more__btn" type="button" id="photo-more-btn">
+              加载更多 (剩余 <span id="photo-remaining">0</span> 张) ↓
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== 04 · ABOUT ======================== -->
     <section class="page" id="about" aria-labelledby="about-title">
       <div class="container">
         <header class="section-head">
-          <p class="section-head__index">// 03 — ABOUT</p>
+          <p class="section-head__index">// 04 — ABOUT</p>
           <h2 class="section-head__title" id="about-title">关于</h2>
           <p class="section-head__sub">独立开发者，做一些觉得有意思的小工具。</p>
         </header>
@@ -224,11 +247,11 @@
       </div>
     </section>
 
-    <!-- ======================== 04 · CONTACT ======================== -->
+    <!-- ======================== 05 · CONTACT ======================== -->
     <section class="page page--end" id="contact" aria-labelledby="contact-title">
       <div class="container">
         <header class="section-head">
-          <p class="section-head__index">// 04 — CONTACT</p>
+          <p class="section-head__index">// 05 — CONTACT</p>
           <h2 class="section-head__title" id="contact-title">联系方式</h2>
           <p class="section-head__sub">欢迎通过以下方式联系我。</p>
         </header>
@@ -289,6 +312,7 @@
           <p class="footer-col__title">// SECTIONS</p>
           <ul>
             <li><a href="#works">作品 / WORKS</a></li>
+            <li><a href="#photos">照片 / PHOTOS</a></li>
             <li><a href="#about">关于 / ABOUT</a></li>
             <li><a href="#contact">联系 / CONTACT</a></li>
             <li><a href="https://www.sevencentury.cn" target="_blank" rel="noopener noreferrer">返回主站 ↗</a></li>
@@ -316,6 +340,18 @@
     </svg>
   </button>
 
+  <!-- Lightbox (原生 <dialog>) -->
+  <dialog class="lightbox" id="lightbox" aria-label="照片放大查看">
+    <div class="lightbox__inner">
+      <img class="lightbox__img" src="" alt="">
+      <button class="lightbox__close" type="button" aria-label="关闭 (ESC)">CLOSE ✕</button>
+      <button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="上一张">← PREV</button>
+      <button class="lightbox__nav lightbox__nav--next" type="button" aria-label="下一张">NEXT →</button>
+      <span class="lightbox__counter" aria-live="polite">// 01 / 00</span>
+    </div>
+  </dialog>
+
   <script src="app.js" defer></script>
+  <script src="photo.js" defer></script>
 </body>
 </html>

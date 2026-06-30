@@ -334,3 +334,226 @@
 @media (max-width: 639px) {
   .about__name { font-size: var(--fs-lg); }
 }
+
+/* ============================================================
+ * Photo section (作品集照片栏目) —— 瀑布流 + lightbox + 多端适配
+ * 移动 ≤639px 2 列 / 平板 640-1023px 3 列 / 桌面 1024-1279px 3 列 / ≥1280px 4 列
+ * ============================================================ */
+
+/* ====== Photo grid (瀑布流:按原比例) ====== */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));    /* 移动端 2 列 */
+  grid-auto-rows: 10px;                                /* 10px 粒度 */
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1280px) {
+  .photo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.photo-grid__item {
+  grid-row-end: span var(--row-span, 30);             /* 默认 30 行 ≈ 300px */
+  position: relative;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  transition:
+    border-color var(--dur-base) var(--ease),
+    transform var(--dur-base) var(--ease);
+}
+.photo-grid__item:hover,
+.photo-grid__item:focus-within {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+.photo-grid__item button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+.photo-grid__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(.15) brightness(.9);
+  transition: filter var(--dur-base) var(--ease);
+}
+.photo-grid__item:hover img,
+.photo-grid__item:focus-within img {
+  filter: grayscale(0) brightness(1);
+}
+
+/* HUD 4 角装饰 */
+.photo-grid__item::before,
+.photo-grid__item::after {
+  content: "";
+  position: absolute;
+  width: 12px; height: 12px;
+  border-color: var(--color-primary);
+  border-style: solid;
+  pointer-events: none;
+  opacity: .35;
+  transition: opacity var(--dur-base) var(--ease);
+  z-index: 1;
+}
+.photo-grid__item::before { top: 6px; left: 6px;       border-width: 1px 0 0 1px; }
+.photo-grid__item::after  { bottom: 6px; right: 6px;   border-width: 0 1px 1px 0; }
+.photo-grid__item:hover::before,
+.photo-grid__item:hover::after { opacity: 1; }
+
+/* ====== 占位骨架(空数据状态) ====== */
+.photo-grid__placeholder {
+  grid-column: 1 / -1;
+  padding: var(--space-7);
+  background-color: var(--color-surface);
+  border: 1px dashed var(--color-border-strong);
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: var(--fs-sm);
+  letter-spacing: .25em;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+}
+
+/* ====== 加载更多 ====== */
+.photo-more {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-7);
+}
+.photo-more[hidden] { display: none; }
+.photo-more__btn {
+  min-width: 16rem;
+}
+@media (max-width: 639px) {
+  .photo-more__btn { width: 100%; min-width: 0; }
+}
+
+/* ====== Lightbox (原生 <dialog>) ====== */
+.lightbox {
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background-color: rgba(0, 0, 0, .92);
+  color: var(--color-text);
+  overflow: hidden;
+}
+.lightbox::backdrop {
+  background-color: rgba(0, 0, 0, .85);
+  -webkit-backdrop-filter: blur(.25rem);
+          backdrop-filter: blur(.25rem);
+}
+.lightbox__inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.lightbox__img {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  display: block;
+}
+.lightbox__close,
+.lightbox__nav {
+  position: absolute;
+  background-color: rgba(0, 0, 0, .6);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.lightbox__close:hover,
+.lightbox__close:focus-visible,
+.lightbox__nav:hover,
+.lightbox__nav:focus-visible {
+  background-color: var(--color-primary);
+  color: var(--color-bg);
+  border-color: var(--color-primary);
+}
+.lightbox__close {
+  top: var(--space-4);
+  right: var(--space-4);
+}
+.lightbox__nav--prev { left: var(--space-4);  top: 50%; transform: translateY(-50%); }
+.lightbox__nav--next { right: var(--space-4); top: 50%; transform: translateY(-50%); }
+.lightbox__counter {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-xs);
+  letter-spacing: .25em;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+
+/* ====== Lightbox 移动端适配 (≤639px) ======
+   - 触控目标 ≥44px
+   - 兼容 iOS 刘海/小白条 (env safe-area-inset-*)
+   - 横滑手势切换(JS 处理) */
+@media (max-width: 639px) {
+  .lightbox__img { max-width: 96vw; max-height: 80vh; }
+  .lightbox__close,
+  .lightbox__nav {
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-3);
+  }
+  .lightbox__close {
+    top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
+    right: calc(env(safe-area-inset-right, 0px) + var(--space-3));
+  }
+  .lightbox__nav--prev {
+    left: calc(env(safe-area-inset-left, 0px) + var(--space-2));
+  }
+  .lightbox__nav--next {
+    right: calc(env(safe-area-inset-right, 0px) + var(--space-2));
+  }
+  .lightbox__counter {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+  }
+}
+
+/* ====== 平板端 lightbox 微调 (640-1023px) ====== */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .lightbox__img { max-width: 94vw; max-height: 84vh; }
+}
